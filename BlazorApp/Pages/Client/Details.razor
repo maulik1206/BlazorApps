@@ -1,0 +1,135 @@
+﻿@page "/clients"
+
+<PageTitle>Client</PageTitle>
+
+<ConfirmDialog Message="Are you sure you want to delete this record?"
+               OnConfirm="OnDeleteConfirmed"
+               OnCancel="OnDeleteCancelled"
+               IsVisible="@showConfirmationDialog" />
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12 mb-5">
+            <Save client="clientParam" OnClientSaved="AfterSaveEmit" />
+        </div>
+        <div class="col-md-12">
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>First Name</th>
+                        <th>Last Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Gender</th>
+                        <th>City</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Clients.Any())
+                    {
+                        <tr>
+                            <td colspan="7">No record found.</td>
+                        </tr>
+                    }
+                    @foreach (var client in Clients)
+                    {
+                        <tr>
+                            <td>@client.FirstName</td>
+                            <td>@client.LastName</td>
+                            <td>@client.Email</td>
+                            <td>@client.Phone</td>
+                            <td>@client.Gender</td>
+                            <td>@client.City</td>
+                            <td>
+                                <button class="btn btn-warning btn-sm" @onclick="()=>EditClient(client)">Edit</button>
+                                <button class="btn btn-danger btn-sm" @onclick="()=>ShowDeleteConfirmation(client.Id)">Delete</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@inject HttpClient Http
+@code {
+
+    public List<Client> Clients { get; set; } = new();
+    public Client clientParam { get; set; } = new();
+    private bool showConfirmationDialog = false;
+    private int clientId = 0;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetAllClient();
+    }
+
+    private async Task GetAllClient()
+    {
+        try
+        {
+            LoadingService.StartLoading();
+            var clientService = new ClientService(Http);
+            Clients = await clientService.GetClientsAsync();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast("Client", ex.Message);
+        }
+        finally
+        {
+            LoadingService.StopLoading();
+        }
+    }
+
+    private void EditClient(Client client)
+    {
+        clientParam = client;
+    }
+
+    private async Task AfterSaveEmit()
+    {
+        clientParam = new Client();
+        await GetAllClient();
+    }
+
+    private void ShowDeleteConfirmation(int id)
+    {
+        showConfirmationDialog = true;
+        clientId = id;
+    }
+
+    private async Task OnDeleteConfirmed()
+    {
+        if (clientId > 0)
+        {
+            try
+            {
+                LoadingService.StartLoading();
+                var clientService = new ClientService(Http);
+                await clientService.DeleteClientAsync(clientId);
+                ToastService.ShowToast("Client", "Client deleted successfully.");
+                clientId = 0;
+                await GetAllClient();
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowToast("Client", ex.Message);
+            }
+            finally
+            {
+                LoadingService.StopLoading();
+            }
+        }
+        showConfirmationDialog = false;
+    }
+
+    private void OnDeleteCancelled()
+    {
+        showConfirmationDialog = false;
+    }
+    
+}

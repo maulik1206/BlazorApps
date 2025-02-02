@@ -1,0 +1,27 @@
+﻿@inject LoadingService LoadingService
+
+<div class="spinner-overlay" style="display: @(isLoading ? "block" : "none")">
+    <div class="spinner"></div>
+</div>
+
+@code {
+    private bool isLoading;
+
+    protected override void OnInitialized()
+    {
+        // Subscribe to the loading state changes
+        LoadingService.OnLoadingChanged += ShowSpinner;
+    }
+
+    private void ShowSpinner(bool loading)
+    {
+        isLoading = loading;
+        StateHasChanged(); // Trigger re-render
+    }
+
+    public void Dispose()
+    {
+        // Unsubscribe from the event to prevent memory leaks
+        LoadingService.OnLoadingChanged -= ShowSpinner;
+    }
+}
